@@ -1,6 +1,6 @@
 export const FRAME_CONFIG = {
-  totalFrames: 151,
-  prefix: '/sequences/nova-hero/ezgif-frame-',
+  totalFrames: 288,
+  prefix: '/sequences/nova-hero-v2/ezgif-frame-',
   extension: '.jpg',
 };
 
