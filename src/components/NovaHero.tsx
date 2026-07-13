@@ -14,11 +14,9 @@ export default function NovaHero() {
   const searchParams = useSearchParams();
   const isDebug = searchParams.get('sequenceDebug') === '1';
 
-  // UI state for initial loading and fallback only
   const [isReducedMotion, setIsReducedMotion] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  // Debug refs (DOM elements to update without React state)
   const debugRequestedRef = useRef<HTMLDivElement>(null);
   const debugRenderedRef = useRef<HTMLDivElement>(null);
   const debugScrollRef = useRef<HTMLDivElement>(null);
@@ -26,7 +24,6 @@ export default function NovaHero() {
   const debugFailedRef = useRef<HTMLDivElement>(null);
   const debugCanvasRef = useRef<HTMLDivElement>(null);
 
-  // High-frequency mutable refs
   const scrollProgressRef = useRef(0);
   const requestedFrameRef = useRef(1);
   const renderedFrameRef = useRef(1);
@@ -35,7 +32,6 @@ export default function NovaHero() {
   const rafRef = useRef<number | null>(null);
   const imagesRef = useRef<Record<number, HTMLImageElement | null>>({});
 
-  // Typography Refs
   const phase1Ref = useRef<HTMLDivElement>(null);
   const phase2Ref = useRef<HTMLDivElement>(null);
   const phase3Ref = useRef<HTMLDivElement>(null);
@@ -87,7 +83,7 @@ export default function NovaHero() {
       }
     }
 
-    if (!targetImg) return; // Never clear if we don't have a replacement
+    if (!targetImg) return;
 
     const physicalWidth = canvas.width;
     const physicalHeight = canvas.height;
@@ -220,7 +216,6 @@ export default function NovaHero() {
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize, isReady]);
 
-  // GSAP ScrollTrigger Setup
   useEffect(() => {
     if (!isReady) return;
 
@@ -254,9 +249,6 @@ export default function NovaHero() {
       },
     });
 
-    // ---------------------------------------------------------
-    // Phase 1: NOVA-1 (Early Darkness) - Masked Reveal
-    // ---------------------------------------------------------
     if (phase1Ref.current) {
       const masks = phase1Ref.current.querySelectorAll('.mask-reveal');
       tl.fromTo(masks,
@@ -266,9 +258,6 @@ export default function NovaHero() {
       ).to(masks, { clipPath: 'inset(0 0 100% 0)', y: -10, opacity: 0, stagger: 0.1, duration: 0.6 }, 1.5);
     }
 
-    // ---------------------------------------------------------
-    // Phase 2: FROM DARKNESS (Word-by-word bubbling)
-    // ---------------------------------------------------------
     if (phase2Ref.current) {
       const words = phase2Ref.current.querySelectorAll('.word-bubble');
       tl.fromTo(words,
@@ -278,9 +267,6 @@ export default function NovaHero() {
       ).to(words, { opacity: 0, y: -10, filter: 'blur(4px)', stagger: 0.1, duration: 0.8 }, 4.5);
     }
 
-    // ---------------------------------------------------------
-    // Phase 3: BUILT TO GO (Elastic stretch)
-    // ---------------------------------------------------------
     if (phase3Ref.current) {
       const elastics = phase3Ref.current.querySelectorAll('.elastic-stretch');
       tl.fromTo(elastics,
@@ -290,9 +276,6 @@ export default function NovaHero() {
       ).to(elastics, { opacity: 0, scaleX: 0.95, duration: 0.8 }, 7.5);
     }
 
-    // ---------------------------------------------------------
-    // Phase 4: SILENCE (Clean masked reveal with negative space)
-    // ---------------------------------------------------------
     if (phase4Ref.current) {
       const masks = phase4Ref.current.querySelectorAll('.mask-horizontal');
       tl.fromTo(masks,
@@ -302,22 +285,16 @@ export default function NovaHero() {
       ).to(masks, { opacity: 0, duration: 0.8 }, 10.5);
     }
 
-    // ---------------------------------------------------------
-    // Phase 5: BEYOND THE MAP (Off-white to Cobalt Blue)
-    // ---------------------------------------------------------
     if (phase5Ref.current) {
       const beyond = phase5Ref.current.querySelector('.beyond');
       const theMap = phase5Ref.current.querySelector('.the-map');
       
-      // Enter
       tl.fromTo([beyond, theMap],
         { opacity: 0, y: 10 },
         { opacity: 1, y: 0, stagger: 0.2, duration: 1.2, ease: 'power2.out' },
         11.5
       );
 
-      // Color transition synced with vehicle illumination (near end of timeline)
-      // Cobalt blue sampled from premium automotive lighting: #1e3a8a (deep) / #3b82f6 (bright)
       tl.to(theMap,
         { color: '#3b82f6', textShadow: '0 0 20px rgba(59, 130, 246, 0.4)', duration: 1.5, ease: 'power2.inOut' },
         12.5
@@ -348,7 +325,6 @@ export default function NovaHero() {
         className="absolute top-0 left-0 w-full h-full object-cover"
       />
 
-      {/* PHASE 1 */}
       <div ref={phase1Ref} className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-center px-6 md:px-24">
         <div className="mask-reveal">
           <h2 className="text-sm md:text-base font-mono tracking-[0.3em] text-white/70 mb-4">AUTONOMOUS ELECTRIC EXPLORER / 01</h2>
@@ -358,7 +334,6 @@ export default function NovaHero() {
         </div>
       </div>
 
-      {/* PHASE 2 */}
       <div ref={phase2Ref} className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-center px-6 md:px-24">
         <div className="max-w-3xl text-3xl md:text-6xl font-sans font-light leading-tight text-white">
           {'FROM DARKNESS,'.split(' ').map((word, i) => (
@@ -371,7 +346,6 @@ export default function NovaHero() {
         </div>
       </div>
 
-      {/* PHASE 3 */}
       <div ref={phase3Ref} className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-center px-6 md:px-24">
         <div className="max-w-4xl text-4xl md:text-7xl font-sans font-medium tracking-tight leading-[1.1] text-white">
           <div className="elastic-stretch inline-block opacity-0 origin-left mb-2">BUILT TO GO</div>
@@ -380,7 +354,6 @@ export default function NovaHero() {
         </div>
       </div>
 
-      {/* PHASE 4 */}
       <div ref={phase4Ref} className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-end pb-32 px-6 md:px-24 items-end text-right">
         <div className="text-2xl md:text-5xl font-sans font-light tracking-wide text-white">
           <div className="mask-horizontal inline-block opacity-0">SILENCE,</div>
@@ -389,7 +362,6 @@ export default function NovaHero() {
         </div>
       </div>
 
-      {/* PHASE 5 */}
       <div ref={phase5Ref} className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-center items-center text-center">
         <div className="text-5xl md:text-8xl font-sans font-bold tracking-tighter uppercase text-white/90 drop-shadow-lg">
           <span className="beyond inline-block opacity-0">BEYOND</span>

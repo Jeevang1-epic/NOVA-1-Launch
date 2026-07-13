@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NOVA-1 Cinematic Scroll Experience
 
-## Getting Started
+An interactive cinematic scroll experience engineered for the NOVA-1 autonomous electric explorer. Built to showcase a deterministic canvas renderer integrated with high-performance typography choreography and 2.5D visual sequences.
 
-First, run the development server:
+## Architecture
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Framework**: Next.js App Router (React 19)
+- **Animation Engine**: GSAP (ScrollTrigger)
+- **Renderer**: Deterministic Canvas Frame Engine
+- **Styling**: Tailwind CSS v4
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Production Readiness
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This application is configured for direct Vercel deployment with:
+- DPR-aware canvas rendering
+- Optimized frame preloading logic
+- Immutable caching strategy for sequence assets
+- Reduced-motion accessibility fallbacks
+- Responsive dimensional recalculation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup & Development
 
-## Learn More
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. Start the local development server:
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Build for production:
+   ```bash
+   npm run build
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Asset Requirements
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The cinematic sequence expects 288 encoded frames (1280x720) served from `public/sequences/nova-hero-v2/` sequentially numbered from `001.jpg` to `288.jpg`.

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "NOVA-1 | Autonomous Electric Explorer",
-  description: "An autonomous electric explorer engineered for terrain, silence, and routes beyond the map.",
+  description: "A cinematic interactive concept experience for NOVA-1, an autonomous electric exploration vehicle designed for terrain beyond the map.",
 };
 
 export default function RootLayout({
