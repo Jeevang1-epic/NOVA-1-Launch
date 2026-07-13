@@ -222,13 +222,16 @@ export default function NovaHero() {
   }, [scheduleRender, updateDebugUI]);
 
   useEffect(() => {
+    if (!isReady) return;
     window.addEventListener('resize', handleResize);
     handleResize();
     return () => window.removeEventListener('resize', handleResize);
-  }, [handleResize]);
+  }, [handleResize, isReady]);
 
   // GSAP ScrollTrigger Setup
   useEffect(() => {
+    if (!isReady) return;
+
     if (isReducedMotion) {
       requestedFrameRef.current = FRAME_CONFIG.totalFrames;
       scheduleRender();
@@ -297,7 +300,7 @@ export default function NovaHero() {
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [isReducedMotion, scheduleRender, isDebug, updateDebugUI]);
+  }, [isReducedMotion, scheduleRender, isDebug, updateDebugUI, isReady]);
 
   if (!isReady) {
     return (
