@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -8,10 +8,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function SpeedPass() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const streakRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
-  const soundControlRef = useRef<HTMLButtonElement>(null);
-  const [soundOn, setSoundOn] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -27,19 +24,14 @@ export default function SpeedPass() {
       }
     });
 
-    // Animate the text and the streak representing the car
+    // Animate the text reveal
     tl.fromTo(textRef.current, 
       { opacity: 0, scale: 0.9, filter: 'blur(10px)' }, 
       { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 1, ease: 'power2.out' }
     )
-    .fromTo(streakRef.current,
-      { x: '-100vw', opacity: 0, scaleX: 0 },
-      { x: '100vw', opacity: 1, scaleX: 1, duration: 2, ease: 'power4.inOut' },
-      0.5 // overlap slightly with text reveal
-    )
     .to(textRef.current,
       { opacity: 0, filter: 'blur(5px)', duration: 0.5 },
-      2.5
+      '+=1'
     );
 
     return () => {
@@ -47,10 +39,6 @@ export default function SpeedPass() {
     };
   }, []);
 
-  const toggleSound = () => {
-    setSoundOn(!soundOn);
-    // Placeholder for actual sound architecture activation
-  };
 
   return (
     <div ref={containerRef} className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
@@ -67,27 +55,8 @@ export default function SpeedPass() {
         </h2>
       </div>
 
-      {/* The vehicle abstraction (cobalt streak) */}
-      <div 
-        ref={streakRef}
-        className="absolute top-1/2 left-0 w-[40vw] h-[2px] bg-blue-500 -translate-y-1/2 z-20 pointer-events-none"
-        style={{
-          boxShadow: '0 0 40px 10px rgba(59, 130, 246, 0.8), 0 0 100px 20px rgba(255, 255, 255, 0.4)',
-          transformOrigin: 'left center',
-        }}
-      />
-
-      {/* Sound Control Architecture */}
-      <div className="absolute bottom-12 right-12 z-30">
-        <button 
-          ref={soundControlRef}
-          onClick={toggleSound}
-          className="text-xs font-mono text-white/50 hover:text-white transition-colors uppercase tracking-widest"
-          aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'}
-        >
-          Sound {soundOn ? 'On' : 'Off'}
-        </button>
-      </div>
+      {/* Dedicated Speed Pass Asset will be injected here once available */}
+      {/* Specification: 16:9, left-to-right, dark background, 4-6 seconds */}
     </div>
   );
 }

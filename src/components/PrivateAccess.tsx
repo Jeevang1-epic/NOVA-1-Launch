@@ -10,6 +10,11 @@ export default function PrivateAccess() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Focus management
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const firstInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -38,13 +43,50 @@ export default function PrivateAccess() {
     };
   }, []);
 
-  // Handle escape key to close modal
+  // Handle escape key and focus trap
   useEffect(() => {
+    if (!isModalOpen) {
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
+      return;
+    }
+
+    // When modal opens, save current focus and focus the first input
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    if (firstInputRef.current) {
+      firstInputRef.current.focus();
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isModalOpen) {
+      if (e.key === 'Escape') {
         setIsModalOpen(false);
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        if (!modalRef.current) return;
+        
+        const focusableElements = modalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0] as HTMLElement;
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
       }
     };
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen]);
@@ -93,6 +135,7 @@ export default function PrivateAccess() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
           <div 
+            ref={modalRef}
             className="w-full max-w-lg bg-zinc-950 border border-white/10 p-8 md:p-12 relative"
             role="dialog"
             aria-modal="true"
@@ -117,6 +160,7 @@ export default function PrivateAccess() {
                 <input 
                   type="text" 
                   id="name" 
+                  ref={firstInputRef}
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
