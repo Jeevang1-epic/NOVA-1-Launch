@@ -158,8 +158,9 @@ export default function NovaHero() {
         img.onload = async () => {
           if (!active) return resolve();
           try {
-            await img.decode();
-            if (!active) return resolve();
+            // We no longer eagerly decode() every single frame because decoding 288 
+            // HD frames simultaneously consumes ~1.5GB to 2GB of RAM, causing an OOM
+            // crash (Aw, Snap!) in Chromium browsers like Arc and Edge.
             imagesRef.current[index] = img;
             loadedCountRef.current++;
             
