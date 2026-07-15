@@ -19,28 +19,26 @@ export default function CustomCursor() {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mediaQuery.matches) return;
 
+    let cursorX: gsap.QuickToFunc;
+    let cursorY: gsap.QuickToFunc;
+    let glowX: gsap.QuickToFunc;
+    let glowY: gsap.QuickToFunc;
+
+    if (cursorRef.current && glowRef.current) {
+      cursorX = gsap.quickTo(cursorRef.current, "x", { duration: 0.1, ease: "power2.out" });
+      cursorY = gsap.quickTo(cursorRef.current, "y", { duration: 0.1, ease: "power2.out" });
+      glowX = gsap.quickTo(glowRef.current, "x", { duration: 0.8, ease: "power3.out" });
+      glowY = gsap.quickTo(glowRef.current, "y", { duration: 0.8, ease: "power3.out" });
+    }
+
     const onMouseMove = (e: MouseEvent) => {
       if (!isVisible) setIsVisible(true);
       
-      // We only animate if the cursor is not in the Hero section
-      // We can check scroll position or let the page component handle visibility, 
-      // but a global cursor that just works is easier.
-      
-      if (cursorRef.current && glowRef.current) {
-        gsap.to(cursorRef.current, {
-          x: e.clientX,
-          y: e.clientY,
-          duration: 0.1,
-          ease: 'power2.out'
-        });
-        
-        // Glow lags slightly behind
-        gsap.to(glowRef.current, {
-          x: e.clientX,
-          y: e.clientY,
-          duration: 0.8,
-          ease: 'power3.out'
-        });
+      if (cursorX && cursorY && glowX && glowY) {
+        cursorX(e.clientX);
+        cursorY(e.clientY);
+        glowX(e.clientX);
+        glowY(e.clientY);
       }
     };
 
