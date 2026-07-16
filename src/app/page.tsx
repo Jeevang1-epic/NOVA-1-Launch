@@ -10,17 +10,9 @@ import { Suspense } from "react";
 export default function Home() {
   return (
     <main className="bg-black min-h-screen">
-      <CustomCursor />
-      
       <Suspense fallback={<div className="h-screen bg-black" />}>
         <NovaHero />
       </Suspense>
-
-      <SpeedPass />
-      <Philosophy />
-      <Principles />
-      <PrivateAccess />
-      <FinalIdentity />
     </main>
   );
 }
