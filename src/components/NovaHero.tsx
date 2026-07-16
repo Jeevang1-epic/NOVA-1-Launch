@@ -11,11 +11,17 @@ gsap.registerPlugin(ScrollTrigger);
 export default function NovaHero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const searchParams = useSearchParams();
-  const isDebug = searchParams.get('sequenceDebug') === '1';
+  let searchParams = null;
+  try {
+    searchParams = useSearchParams();
+  } catch (e) {
+    // ignore
+  }
+  const isDebug = searchParams?.get('sequenceDebug') === '1';
 
   const [isReducedMotion, setIsReducedMotion] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const debugRequestedRef = useRef<HTMLDivElement>(null);
   const debugRenderedRef = useRef<HTMLDivElement>(null);
@@ -30,7 +36,13 @@ export default function NovaHero() {
   const loadedCountRef = useRef(0);
   const failedCountRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+  
   const imagesRef = useRef<Record<number, HTMLImageElement | null>>({});
+  const activeLoadsRef = useRef(0);
+  const loadingFramesRef = useRef<Set<number>>(new Set());
+  const frameQueueRef = useRef<number[]>([]);
+  const lastRequestedFrameRef = useRef(1);
+  const directionRef = useRef<1 | -1>(1);
 
   const phase1Ref = useRef<HTMLDivElement>(null);
   const phase2Ref = useRef<HTMLDivElement>(null);
@@ -40,7 +52,6 @@ export default function NovaHero() {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsReducedMotion(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsReducedMotion(e.matches);
     mediaQuery.addEventListener('change', handler);
@@ -83,6 +94,7 @@ export default function NovaHero() {
       }
     }
 
+    // Never clear before a valid frame exists
     if (!targetImg) return;
 
     const physicalWidth = canvas.width;
@@ -109,7 +121,6 @@ export default function NovaHero() {
     }
 
     ctx.imageSmoothingEnabled = true;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     ctx.imageSmoothingQuality = 'high';
 
@@ -128,11 +139,103 @@ export default function NovaHero() {
     });
   }, [drawFrame]);
 
+  const processQueue = useCallback(() => {
+    const MAX_CONCURRENCY = 4;
+    while (activeLoadsRef.current < MAX_CONCURRENCY && frameQueueRef.current.length > 0) {
+      const frame = frameQueueRef.current.shift();
+      if (frame === undefined) break;
+      
+      activeLoadsRef.current++;
+      loadingFramesRef.current.add(frame);
+      
+      const img = new Image();
+      img.src = getFramePath(frame);
+      
+      img.onload = () => {
+        activeLoadsRef.current--;
+        loadingFramesRef.current.delete(frame);
+        
+        // Ensure we only keep it if it is still within the sliding window
+        if (Math.abs(frame - requestedFrameRef.current) <= 15) {
+          imagesRef.current[frame] = img;
+          loadedCountRef.current++;
+          
+          if (frame === 1) setIsReady(true);
+          
+          if (frame === requestedFrameRef.current) {
+            scheduleRender();
+          } else {
+            updateDebugUI();
+          }
+        } else {
+          img.src = ''; // Cancel/discard immediately if outside window
+        }
+        processQueue();
+      };
+      
+      img.onerror = () => {
+        activeLoadsRef.current--;
+        loadingFramesRef.current.delete(frame);
+        failedCountRef.current++;
+        processQueue();
+      };
+    }
+  }, [scheduleRender, updateDebugUI]);
+
+  const enqueueFrames = useCallback(() => {
+    const current = requestedFrameRef.current;
+    const dir = current >= lastRequestedFrameRef.current ? 1 : -1;
+    directionRef.current = dir as 1 | -1;
+    lastRequestedFrameRef.current = current;
+
+    const WINDOW_SIZE = 15;
+    const desiredFrames = new Set<number>();
+    desiredFrames.add(current);
+    
+    // Direction-aware prefetching
+    for (let i = 1; i <= WINDOW_SIZE; i++) {
+      const forward = current + (i * directionRef.current);
+      const backward = current - (i * directionRef.current);
+      if (forward >= 1 && forward <= FRAME_CONFIG.totalFrames) desiredFrames.add(forward);
+      if (backward >= 1 && backward <= FRAME_CONFIG.totalFrames) desiredFrames.add(backward);
+    }
+
+    // Evict frames outside the desired window to prevent OOM
+    Object.keys(imagesRef.current).forEach(key => {
+      const frameIdx = parseInt(key, 10);
+      if (!desiredFrames.has(frameIdx) && imagesRef.current[frameIdx]) {
+        const img = imagesRef.current[frameIdx];
+        if (img) {
+          img.src = ''; // Remove application reference to allow browser GC
+        }
+        imagesRef.current[frameIdx] = null;
+        delete imagesRef.current[frameIdx];
+      }
+    });
+    
+    // Enqueue missing frames within window
+    const queue = Array.from(desiredFrames).filter(f => !imagesRef.current[f] && !loadingFramesRef.current.has(f));
+    
+    queue.sort((a, b) => {
+      if (a === current) return -1;
+      if (b === current) return 1;
+      const distA = Math.abs(a - current);
+      const distB = Math.abs(b - current);
+      const dirA = Math.sign(a - current) === directionRef.current ? 0 : 1; 
+      const dirB = Math.sign(b - current) === directionRef.current ? 0 : 1;
+      return (distA + dirA * 10) - (distB + dirB * 10);
+    });
+    
+    frameQueueRef.current = queue;
+    processQueue();
+  }, [processQueue]);
+
   const handleResize = useCallback(() => {
     if (!canvasRef.current || !containerRef.current) return;
     const canvas = canvasRef.current;
     
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Cap DPR at 1.25 for 720p source frames
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
     const cssWidth = window.innerWidth;
     const cssHeight = window.innerHeight;
     
@@ -144,71 +247,31 @@ export default function NovaHero() {
     scheduleRender();
   }, [scheduleRender]);
 
+  // Initial load and fail-safe timeout
   useEffect(() => {
     let active = true;
-    const total = FRAME_CONFIG.totalFrames;
+    enqueueFrames();
 
-    const loadImage = async (index: number): Promise<void> => {
-      if (imagesRef.current[index]) return;
-      
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.src = getFramePath(index);
-        
-        img.onload = async () => {
-          if (!active) return resolve();
-          try {
-            // We no longer eagerly decode() every single frame because decoding 288 
-            // HD frames simultaneously consumes ~1.5GB to 2GB of RAM, causing an OOM
-            // crash (Aw, Snap!) in Chromium browsers like Arc and Edge.
-            imagesRef.current[index] = img;
-            loadedCountRef.current++;
-            
-            if (index === 1) setIsReady(true);
-            
-            if (index === requestedFrameRef.current) {
-              scheduleRender();
-            } else {
-              updateDebugUI();
-            }
-          } catch {
-            if (!active) return resolve();
-            failedCountRef.current++;
-            imagesRef.current[index] = null;
-          }
-          resolve();
-        };
-
-        img.onerror = () => {
-          if (!active) return resolve();
-          failedCountRef.current++;
-          imagesRef.current[index] = null;
-          resolve();
-        };
-      });
-    };
-
-    const loadSequence = async () => {
-      await loadImage(1);
-      
-      const batchPromises = [loadImage(total)];
-      for (let i = 2; i <= Math.min(20, total); i++) {
-        batchPromises.push(loadImage(i));
+    const timeoutId = setTimeout(() => {
+      if (active && !isReady) {
+        setLoadFailed(true);
       }
-      await Promise.all(batchPromises);
-
-      for (let i = 21; i < total; i++) {
-        if (!active) break;
-        await loadImage(i);
-      }
-    };
-
-    loadSequence();
+    }, 10000); // 10s fallback
 
     return () => {
       active = false;
+      clearTimeout(timeoutId);
+      
+      // Cleanup all resources on unmount
+      Object.values(imagesRef.current).forEach(img => {
+        if (img) img.src = '';
+      });
+      imagesRef.current = {};
+      frameQueueRef.current = [];
+      loadingFramesRef.current.clear();
+      activeLoadsRef.current = 0;
     };
-  }, [scheduleRender, updateDebugUI]);
+  }, [enqueueFrames, isReady]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -218,10 +281,11 @@ export default function NovaHero() {
   }, [handleResize, isReady]);
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady || loadFailed) return;
 
     if (isReducedMotion) {
       requestedFrameRef.current = FRAME_CONFIG.totalFrames;
+      enqueueFrames();
       scheduleRender();
       return;
     }
@@ -242,6 +306,7 @@ export default function NovaHero() {
           
           if (requestedFrameRef.current !== safeFrame) {
             requestedFrameRef.current = safeFrame;
+            enqueueFrames(); // Dynamically update queue on scroll
             scheduleRender();
           } else if (isDebug) {
              updateDebugUI();
@@ -309,7 +374,20 @@ export default function NovaHero() {
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [isReducedMotion, scheduleRender, isDebug, updateDebugUI, isReady]);
+  }, [isReducedMotion, enqueueFrames, scheduleRender, isDebug, updateDebugUI, isReady, loadFailed]);
+
+  // Fallback UI
+  if (loadFailed) {
+    return (
+      <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center text-white select-none">
+         <img src={getFramePath(1)} alt="NOVA-1" className="absolute top-0 left-0 w-full h-full object-cover opacity-80" />
+         <div className="z-10 text-center font-sans">
+            <h1 className="text-5xl md:text-8xl font-light tracking-tight mb-4">NOVA-1</h1>
+            <p className="text-xl md:text-2xl font-light tracking-wide text-white/70">SILENCE, ENGINEERED.</p>
+         </div>
+      </div>
+    );
+  }
 
   if (!isReady) {
     return (
